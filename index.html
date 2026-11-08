@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101418">
+<meta name="description" content="Touch-friendly 3D desk setup and room designer.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>DeskForge 3D — Room Editor</title>
+<style>
+:root{--bg:#101418;--panel:#171e24;--panel2:#202a32;--line:#303d47;--text:#e8eef2;--muted:#9baab4;--accent:#7bd3c4;--accent2:#e2b56f;--danger:#e58a83}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#app{height:100dvh;display:grid;grid-template-rows:58px 1fr 66px}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--line);background:#12191e;gap:12px}
+.brand{font-weight:750;letter-spacing:.04em;font-size:15px}.brand span{color:var(--accent)}
+.header-actions{display:flex;gap:8px;align-items:center}.status{font-size:11px;color:var(--muted)}
+button,select,input{font:inherit;color:var(--text)}button{border:1px solid var(--line);background:var(--panel2);padding:9px 11px;border-radius:9px;cursor:pointer;touch-action:manipulation}button:active{transform:scale(.98)}button.primary{background:var(--accent);color:#10201e;border-color:var(--accent);font-weight:700}button.active{border-color:var(--accent);color:var(--accent)}button.small{padding:7px 9px;font-size:12px}
+main{min-height:0;display:grid;grid-template-columns:230px minmax(0,1fr) 250px}
+aside{background:var(--panel);overflow:auto;padding:13px;border-right:1px solid var(--line)}aside.right{border-right:0;border-left:1px solid var(--line)}
+h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:5px 0 12px}
+.section{padding-bottom:15px;margin-bottom:15px;border-bottom:1px solid var(--line)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.objbtn{min-height:68px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;text-align:left;background:#202a32}
+.objbtn b{font-size:12px}.objbtn span{font-size:20px}
+label{display:block;font-size:11px;color:var(--muted);margin:9px 0 4px}
+input,select{width:100%;background:#0f1519;border:1px solid var(--line);border-radius:7px;padding:9px;min-width:0}
+.row{display:flex;gap:7px;align-items:center}.row>*{flex:1;min-width:0}
+#viewport{position:relative;min-width:0;min-height:0;background:radial-gradient(ellipse at center,#26323a 0%,#151c21 72%);overflow:hidden}
+#scene{width:100%;height:100%;display:block;touch-action:none}
+.hint{position:absolute;left:12px;top:12px;padding:8px 10px;background:#111a20dd;border:1px solid #3a4852;border-radius:8px;color:#c2cdd3;font-size:11px;pointer-events:none}
+.viewtools{position:absolute;right:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.viewtools button{background:#111a20e8}
+#empty{position:absolute;inset:0;display:none;align-items:center;justify-content:center;pointer-events:none;color:var(--muted)}
+.pill{display:inline-block;padding:3px 7px;border-radius:99px;background:#253a3a;color:var(--accent);font-size:10px}
+footer{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--line);background:#12191e;gap:8px}
+.toolgroup{display:flex;gap:6px;overflow-x:auto}.toolgroup button{white-space:nowrap}
+#toast{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:#e8eef2;color:#101418;padding:9px 14px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+.muted{color:var(--muted);font-size:11px;line-height:1.45}.object-name{font-size:13px;font-weight:650;margin-bottom:4px}
+.danger{color:var(--danger)}
+@media(max-width:850px){main{grid-template-columns:185px minmax(0,1fr)}aside.right{position:absolute;z-index:5;right:8px;top:66px;bottom:76px;width:min(260px,78vw);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 35px #0008;display:none}aside.right.open{display:block}.hint{max-width:60%}}
+@media(max-width:560px){#app{grid-template-rows:52px 1fr 62px}header{padding:0 10px}.brand{font-size:13px}.status{display:none}main{grid-template-columns:1fr}aside.left{position:absolute;z-index:6;left:8px;top:60px;bottom:74px;width:min(205px,72vw);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 35px #0008;display:none}aside.left.open{display:block}footer{padding:7px 8px}.toolgroup button{padding:8px;font-size:11px}.hint{font-size:10px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand">DESK<span>FORGE</span> <span style="color:#9baab4;font-weight:500">/ 3D ROOM EDITOR</span></div>
+  <div class="header-actions"><span class="status">iPad touch-ready · Prototype 0.1</span><button class="small" id="toggleLibrary">☰ Library</button><button class="small" id="toggleInspector">Inspector</button><button class="primary small" id="saveBtn">Save</button></div>
+</header>
+<main>
+<aside class="left" id="library">
+  <div class="section">
+    <h2>Furniture library</h2>
+    <div class="grid2">
+      <button class="objbtn" data-kind="desk"><span>▰</span><b>Desk</b></button>
+      <button class="objbtn" data-kind="cabinet"><span>▤</span><b>Cabinet</b></button>
+      <button class="objbtn" data-kind="chair"><span>◉</span><b>Chair</b></button>
+      <button class="objbtn" data-kind="monitor"><span>▣</span><b>Monitor</b></button>
+      <button class="objbtn" data-kind="shelf"><span>▥</span><b>Wall shelf</b></button>
+      <button class="objbtn" data-kind="box"><span>◇</span><b>Custom block</b></button>
+    </div>
+    <p class="muted">Choose an item to add it to the room. Select an object in the viewport to edit it.</p>
+  </div>
+  <div class="section">
+    <h2>Room dimensions · meters</h2>
+    <div class="row"><div><label>Width</label><input id="roomW" type="number" min="2" max="20" step=".1" value="5"></div><div><label>Depth</label><input id="roomD" type="number" min="2" max="20" step=".1" value="4"></div></div>
+    <div class="row"><div><label>Height</label><input id="roomH" type="number" min="2" max="6" step=".1" value="2.7"></div><div style="display:flex;align-items:end"><button id="applyRoom" class="primary" style="width:100%">Apply</button></div></div>
+  </div>
+  <div class="section">
+    <h2>Placement</h2>
+    <button id="snapToggle" class="active" style="width:100%;margin-bottom:7px">✓ Grid snap ON</button>
+    <div class="row"><div><label>Snap increment</label><select id="snapSize"><option value=".05">5 cm</option><option value=".1" selected>10 cm</option><option value=".25">25 cm</option><option value=".5">50 cm</option></select></div></div>
+    <button id="wallMode" style="width:100%;margin-top:8px">▥ Place selected on back wall</button>
+    <button id="stackMode" style="width:100%;margin-top:7px">↑ Place on top of selected</button>
+  </div>
+</aside>
+<section id="viewport">
+  <canvas id="scene"></canvas>
+  <div class="hint">Drag to orbit · Pinch to zoom · Tap an object to select · Drag selected object to move</div>
+  <div class="viewtools"><button class="small" id="topView">Top</button><button class="small" id="resetView">3D view</button><button class="small" id="fitView">Fit room</button></div>
+  <div id="toast"></div>
+</section>
+<aside class="right" id="inspector">
+  <div class="section">
+    <h2>Selected object</h2>
+    <div id="noSelection" class="muted">Nothing selected. Add an object or tap one in the room.</div>
+    <div id="properties" style="display:none">
+      <div class="object-name" id="selectedName">Desk</div><span class="pill" id="selectedType">FURNITURE</span>
+      <label>Object name</label><input id="objName" type="text">
+      <label>Position · meters</label>
+      <div class="row"><div><label>X</label><input id="posX" type="number" step=".05"></div><div><label>Y</label><input id="posY" type="number" step=".05"></div><div><label>Z</label><input id="posZ" type="number" step=".05"></div></div>
+      <label>Rotation · degrees</label><input id="rotation" type="number" step="15">
+      <label>Size · meters</label>
+      <div class="row"><div><label>W</label><input id="sizeX" type="number" min=".05" step=".05"></div><div><label>H</label><input id="sizeY" type="number" min=".05" step=".05"></div><div><label>D</label><input id="sizeZ" type="number" min=".05" step=".05"></div></div>
+      <label>Finish</label><select id="material"><option value="walnut">Walnut wood</option><option value="oak">Natural oak</option><option value="black">Matte black</option><option value="white">Warm white</option><option value="steel">Brushed steel</option><option value="concrete">Concrete</option><option value="green">Forest green</option></select>
+      <label>Custom color</label><input id="color" type="color" value="#79553b" style="height:40px;padding:3px">
+      <div class="row" style="margin-top:10px"><button id="duplicate">Duplicate</button><button id="delete" class="danger">Delete</button></div>
+    </div>
+  </div>
+  <div class="section">
+    <h2>Project</h2><div class="muted" id="projectStats">0 objects in room</div>
+    <button id="exportBtn" style="width:100%;margin-top:9px">Export project JSON</button>
+    <button id="importBtn" style="width:100%;margin-top:7px">Import project JSON</button>
+    <input id="fileInput" type="file" accept="application/json" style="display:none">
+  </div>
+  <p class="muted">This prototype saves project data in your browser and exports a portable JSON project file. It is not yet cloud-synced.</p>
+</aside>
+</main>
+<footer>
+  <div class="toolgroup"><button id="moveTool" class="active">↔ Move</button><button id="rotateTool">⟳ Rotate</button><button id="scaleTool">⤢ Scale</button></div>
+  <div class="toolgroup"><button id="deselect">Deselect</button><button id="undo">Undo</button></div>
+</footer>
+</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const canvas=document.querySelector('#scene'), viewport=document.querySelector('#viewport');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#182127');
+const camera=new THREE.PerspectiveCamera(48,1,.1,100);camera.position.set(6,5.2,7);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1,0);controls.maxPolarAngle=Math.PI*.49;
+scene.add(new THREE.HemisphereLight(0xdcecff,0x293039,2));
+const key=new THREE.DirectionalLight(0xffe5c6,2.4);key.position.set(-4,8,5);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
+const fill=new THREE.DirectionalLight(0x8bb7d0,1.1);fill.position.set(5,4,-5);scene.add(fill);
+const grid=new THREE.GridHelper(20,200,0x58716f,0x34454b);grid.position.y=.006;scene.add(grid);
+let room={w:5,d:4,h:2.7},roomGroup=new THREE.Group();scene.add(roomGroup);
+let objects=[],selected=null,snap=true,tool='move',dragging=false,dragPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0),dragOffset=new THREE.Vector3(),pointer=new THREE.Vector2(),raycaster=new THREE.Raycaster(),undoStack=[];
+const mats={walnut:0x79553b,oak:0xb58a59,black:0x252b30,white:0xe5e1d8,steel:0x84939b,concrete:0x858783,green:0x294d43};
+function toast(msg){const el=document.querySelector('#toast');el.textContent=msg;el.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.opacity=0,1700)}
+function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(viewport);resize();
+function makeRoom(){while(roomGroup.children.length)roomGroup.remove(roomGroup.children[0]);const floor=new THREE.Mesh(new THREE.BoxGeometry(room.w,.08,room.d),new THREE.MeshStandardMaterial({color:0x555b5d,roughness:.85}));floor.position.y=-.04;floor.receiveShadow=true;roomGroup.add(floor);
+const wallmat=new THREE.MeshStandardMaterial({color:0x64727a,roughness:.9,side:THREE.DoubleSide});
+const back=new THREE.Mesh(new THREE.BoxGeometry(room.w,room.h,.08),wallmat);back.position.set(0,room.h/2,-room.d/2);back.receiveShadow=true;roomGroup.add(back);
+const left=new THREE.Mesh(new THREE.BoxGeometry(.08,room.h,room.d),wallmat);left.position.set(-room.w/2,room.h/2,0);left.receiveShadow=true;roomGroup.add(left);
+const right=new THREE.Mesh(new THREE.BoxGeometry(.08,room.h,room.d),wallmat);right.position.set(room.w/2,room.h/2,0);right.receiveShadow=true;roomGroup.add(right);
+const trimMat=new THREE.MeshStandardMaterial({color:0x252e33,roughness:.7});
+for(const x of [-room.w/2,room.w/2]){const trim=new THREE.Mesh(new THREE.BoxGeometry(.035,.12,room.d),trimMat);trim.position.set(x,.06,0);roomGroup.add(trim)}
+}
+makeRoom();
+function createObject(kind,position){const group=new THREE.Group();group.userData={kind,name:kind[0].toUpperCase()+kind.slice(1),finish:'walnut'};
+const wood=new THREE.MeshStandardMaterial({color:mats.walnut,roughness:.62}),dark=new THREE.MeshStandardMaterial({color:0x252b30,roughness:.5}),screen=new THREE.MeshStandardMaterial({color:0x111b22,metalness:.25,roughness:.22});
+function part(w,h,d,x,y,z,mat=wood){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;group.add(m);return m}
+if(kind==='desk'){part(1.6,.09,.75,0,.76,0);for(const x of [-.68,.68])for(const z of [-.27,.27])part(.055,.74,.055,x,.37,z,dark)}
+else if(kind==='cabinet'){part(.8,.8,.55,0,.4,0);part(.72,.018,.02,0,.55,.286,dark);part(.72,.018,.02,0,.28,.286,dark)}
+else if(kind==='chair'){part(.55,.12,.55,0,.48,0,dark);part(.55,.65,.12,0,.88,-.22,dark);part(.08,.45,.08,0,.22,0,dark);for(const x of [-.22,.22])for(const z of [-.22,.22])part(.045,.2,.045,x,.1,z,dark)}
+else if(kind==='monitor'){part(.9,.53,.07,0,1.05,0,dark);part(.82,.45,.025,0,1.06,.045,screen);part(.08,.25,.08,0,.66,0,dark);part(.42,.035,.25,0,.52,0,dark)}
+else if(kind==='shelf'){part(1.1,.07,.28,0,.9,0);for(const x of [-.48,.48])part(.045,.9,.06,x,.45,-.09,dark)}
+else{part(.7,.7,.7,0,.35,0)}
+group.position.copy(position||new THREE.Vector3(0,0,0));group.traverse(o=>{if(o.isMesh){o.userData.owner=group}});scene.add(group);objects.push(group);select(group);updateStats();return group}
+function snapVal(v){const s=Number(document.querySelector('#snapSize').value);return snap?Math.round(v/s)*s:v}
+function select(obj){selected=obj;document.querySelector('#noSelection').style.display=obj?'none':'block';document.querySelector('#properties').style.display=obj?'block':'none';if(!obj){updateStats();return}
+const b=new THREE.Box3().setFromObject(obj),size=b.getSize(new THREE.Vector3());document.querySelector('#selectedName').textContent=obj.userData.name;document.querySelector('#selectedType').textContent=obj.userData.kind.toUpperCase();document.querySelector('#objName').value=obj.userData.name;
+document.querySelector('#posX').value=obj.position.x.toFixed(2);document.querySelector('#posY').value=obj.position.y.toFixed(2);document.querySelector('#posZ').value=obj.position.z.toFixed(2);document.querySelector('#rotation').value=Math.round(THREE.MathUtils.radToDeg(obj.rotation.y));document.querySelector('#sizeX').value=size.x.toFixed(2);document.querySelector('#sizeY').value=size.y.toFixed(2);document.querySelector('#sizeZ').value=size.z.toFixed(2);document.querySelector('#material').value=obj.userData.finish||'walnut';document.querySelector('#color').value='#'+(obj.userData.color||mats[obj.userData.finish||'walnut']).toString(16).padStart(6,'0');updateStats()}
+function updateStats(){document.querySelector('#projectStats').textContent=objects.length+' object'+(objects.length===1?'':'s')+' in room'}
+function applyFinish(finish,color){if(!selected)return;const col=color||mats[finish];selected.userData.finish=finish;selected.userData.color=col;selected.traverse(o=>{if(o.isMesh&&o.material.color&&o.material.color.getHex()!==0x111b22&&o.material.color.getHex()!==0x252b30){o.material=o.material.clone();o.material.color.setHex(col)}})}
+function pushUndo(){undoStack.push(serialize());if(undoStack.length>20)undoStack.shift()}
+function serialize(){return {version:1,room,objects:objects.map(o=>({kind:o.userData.kind,name:o.userData.name,position:o.position.toArray(),rotation:o.rotation.y,scale:o.scale.toArray(),finish:o.userData.finish,color:o.userData.color}))}}
+function loadProject(data){objects.forEach(o=>scene.remove(o));objects=[];room=data.room||room;makeRoom();(data.objects||[]).forEach(d=>{const o=createObject(d.kind,new THREE.Vector3(...d.position));o.userData.name=d.name||d.kind;o.rotation.y=d.rotation||0;o.scale.fromArray(d.scale||[1,1,1]);if(d.finish)applyFinish(d.finish,d.color);});select(null);toast('Project loaded')}
+document.querySelectorAll('[data-kind]').forEach(b=>b.addEventListener('click',()=>{pushUndo();createObject(b.dataset.kind,new THREE.Vector3(0,0,0));toast(b.dataset.kind+' added')}));
+document.querySelector('#applyRoom').onclick=()=>{pushUndo();room.w=Number(document.querySelector('#roomW').value);room.d=Number(document.querySelector('#roomD').value);room.h=Number(document.querySelector('#roomH').value);makeRoom();toast('Room dimensions updated')};
+document.querySelector('#snapToggle').onclick=e=>{snap=!snap;e.currentTarget.textContent=snap?'✓ Grid snap ON':'Grid snap OFF';e.currentTarget.classList.toggle('active',snap)};
+document.querySelector('#wallMode').onclick=()=>{if(!selected)return toast('Select an object first');pushUndo();const box=new THREE.Box3().setFromObject(selected);selected.position.z=-room.d/2+box.getSize(new THREE.Vector3()).z/2+.05;selected.position.y=Math.max(box.getSize(new THREE.Vector3()).y/2,selected.position.y);selected.position.x=snapVal(selected.position.x);syncInspector();toast('Moved to back wall')};
+document.querySelector('#stackMode').onclick=()=>{if(!selected)return toast('Select an object first');const others=objects.filter(o=>o!==selected);if(!others.length)return toast('Add another object first');const target=others[others.length-1],a=new THREE.Box3().setFromObject(target),b=new THREE.Box3().setFromObject(selected);selected.position.y+=a.max.y-b.min.y;selected.position.x=target.position.x;selected.position.z=target.position.z;syncInspector();toast('Placed on top of '+target.userData.name)};
+function syncInspector(){if(!selected)return;select(selected)}
+function setField(id,fn){document.querySelector('#'+id).addEventListener('change',e=>{if(!selected)return;pushUndo();fn(e.target.value);syncInspector()})}
+setField('objName',v=>selected.userData.name=v);setField('posX',v=>selected.position.x=Number(v));setField('posY',v=>selected.position.y=Number(v));setField('posZ',v=>selected.position.z=Number(v));setField('rotation',v=>selected.rotation.y=THREE.MathUtils.degToRad(Number(v)));
+setField('sizeX',v=>{const b=new THREE.Box3().setFromObject(selected).getSize(new THREE.Vector3());selected.scale.x*=Number(v)/b.x});setField('sizeY',v=>{const b=new THREE.Box3().setFromObject(selected).getSize(new THREE.Vector3());selected.scale.y*=Number(v)/b.y});setField('sizeZ',v=>{const b=new THREE.Box3().setFromObject(selected).getSize(new THREE.Vector3());selected.scale.z*=Number(v)/b.z});
+document.querySelector('#material').onchange=e=>{if(selected){pushUndo();applyFinish(e.target.value);syncInspector()}};document.querySelector('#color').onchange=e=>{if(selected){pushUndo();applyFinish(selected.userData.finish,parseInt(e.target.value.slice(1),16));syncInspector()}};
+document.querySelector('#duplicate').onclick=()=>{if(!selected)return;pushUndo();const d=serialize().objects.find(x=>x.name===selected.userData.name);const n=createObject(selected.userData.kind,selected.position.clone().add(new THREE.Vector3(.25,0,.25)));n.userData.name=selected.userData.name+' copy';n.rotation.copy(selected.rotation);n.scale.copy(selected.scale);if(d?.finish)applyFinish(d.finish,d.color);syncInspector()};
+document.querySelector('#delete').onclick=()=>{if(!selected)return;pushUndo();scene.remove(selected);objects=objects.filter(o=>o!==selected);select(null);toast('Object deleted')};
+document.querySelector('#deselect').onclick=()=>select(null);
+document.querySelector('#moveTool').onclick=()=>setTool('move');document.querySelector('#rotateTool').onclick=()=>setTool('rotate');document.querySelector('#scaleTool').onclick=()=>setTool('scale');
+function setTool(t){tool=t;['move','rotate','scale'].forEach(x=>document.querySelector('#'+x+'Tool').classList.toggle('active',x===t));toast(t+' tool selected')}
+function coords(e){const r=canvas.getBoundingClientRect();pointer.x=(e.clientX-r.left)/r.width*2-1;pointer.y=-((e.clientY-r.top)/r.height)*2+1;raycaster.setFromCamera(pointer,camera)}
+let downX=0,downY=0,dragMoved=false;
+canvas.addEventListener('pointerdown',e=>{coords(e);downX=e.clientX;downY=e.clientY;dragMoved=false;const hits=raycaster.intersectObjects(objects.flatMap(o=>o.children),true);if(hits.length){let obj=hits[0].object;while(obj&&!objects.includes(obj))obj=obj.parent;if(obj){select(obj);if(tool==='move'){pushUndo();dragPlane.set(new THREE.Vector3(0,1,0),-selected.position.y);const p=new THREE.Vector3();raycaster.ray.intersectPlane(dragPlane,p);dragOffset.copy(selected.position).sub(p);dragging=true;controls.enabled=false;canvas.setPointerCapture(e.pointerId)}}}else if(e.pointerType==='mouse'||e.pointerType==='pen'){select(null)}});
+canvas.addEventListener('pointermove',e=>{if(!dragging||!selected)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>3)dragMoved=true;coords(e);const p=new THREE.Vector3();if(raycaster.ray.intersectPlane(dragPlane,p)){selected.position.x=snapVal(p.x+dragOffset.x);selected.position.z=snapVal(p.z+dragOffset.z);syncInspector()}});
+function endDrag(){dragging=false;controls.enabled=true}canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);
+canvas.addEventListener('wheel',()=>{}, {passive:true});
+document.querySelector('#topView').onclick=()=>{camera.position.set(0,Math.max(room.w,room.d)*1.8,.001);controls.target.set(0,0,0);controls.update()};
+document.querySelector('#resetView').onclick=()=>{camera.position.set(room.w*1.25,room.h*1.9,room.d*1.8);controls.target.set(0,1,0);controls.update()};
+document.querySelector('#fitView').onclick=()=>{camera.position.set(room.w*1.35,room.h*1.9,room.d*1.8);controls.target.set(0,room.h*.35,0);controls.update()};
+document.querySelector('#saveBtn').onclick=()=>{localStorage.setItem('deskforge-project',JSON.stringify(serialize()));toast('Saved on this device')};
+document.querySelector('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(serialize(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='deskforge-project.json';a.click();URL.revokeObjectURL(a.href);toast('Project exported')};
+document.querySelector('#importBtn').onclick=()=>document.querySelector('#fileInput').click();document.querySelector('#fileInput').onchange=async e=>{const f=e.target.files[0];if(f){try{loadProject(JSON.parse(await f.text()))}catch{toast('Could not read that project file')}}};
+document.querySelector('#undo').onclick=()=>{const d=undoStack.pop();if(d)loadProject(d);else toast('Nothing to undo')};
+document.querySelector('#toggleLibrary').onclick=()=>document.querySelector('#library').classList.toggle('open');document.querySelector('#toggleInspector').onclick=()=>document.querySelector('#inspector').classList.toggle('open');
+const prior=localStorage.getItem('deskforge-project');if(prior){try{loadProject(JSON.parse(prior))}catch{}}
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+</script>
+<script>
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(console.warn));
+}
+</script>
+</body></html>
